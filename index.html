@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rearrange PDF Pages</title>
+    <title>PDF Cut & Stack Rearranger</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,14 +13,10 @@
         input[type="file"] {
             margin-bottom: 20px;
         }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-        }
         .result {
             margin-top: 20px;
             font-size: 18px;
+            color: #333;
         }
         input[type=file]::file-selector-button {
             margin-right: 20px;
@@ -32,11 +28,9 @@
             cursor: pointer;
             transition: background .2s ease-in-out;
         }
-
         input[type=file]::file-selector-button:hover {
             background: #0d45a5;
         }
-
         button {
             border: none;
             background: #0d45a5;
@@ -45,50 +39,84 @@
             color: #fff;
             cursor: pointer;
             transition: background .2s ease-in-out;
+            font-size: 16px;
         }
-        
+        button:disabled {
+            background: #6c8cbf;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
-    <h1>Rearrange PDF Pages</h1>
-    <p>Upload a PDF file and the pages will be rearranged in the order (1, 3, 4, 2).</p>
+    <h1>PDF Cut & Stack Rearranger</h1>
+    <p>Upload a PDF to format it for printing "2-Up Double-Sided".<br> Print the result, cut the stack down the middle, and place the right half under the left half.</p>
+    
     <input type="file" id="pdfFile" accept=".pdf">
-    <button onclick="uploadFile()">Rearrange</button>
+    <button id="processBtn" onclick="uploadFile()">Process PDF</button>
     <div class="result" id="result"></div>
 
     <script>
         async function uploadFile() {
             const fileInput = document.getElementById('pdfFile');
             const resultDiv = document.getElementById('result');
+            const processBtn = document.getElementById('processBtn');
 
             if (!fileInput.files.length) {
                 resultDiv.textContent = "Please select a PDF file first.";
+                resultDiv.style.color = "red";
                 return;
             }
+
+            // Update UI to show processing state
+            resultDiv.textContent = "";
+            processBtn.disabled = true;
+            processBtn.textContent = "Processing...";
 
             const file = fileInput.files[0];
             const formData = new FormData();
             formData.append('pdf', file);
 
             try {
-                const response = await fetch('/rearrange-pdf', {
+                // Pointing to the new Cut and Stack endpoint
+                const response = await fetch('/rearrange-cut-stack', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response.ok) {
+                    // Extract the dynamic filename sent by Flask
+                    let filename = 'rearranged_CutAndStack.pdf'; // Fallback name
+                    const disposition = response.headers.get('Content-Disposition');
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                        if (matches != null && matches[1]) {
+                            filename = matches[1].replace(/['"]/g, '');
+                        }
+                    }
+
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'rearranged.pdf';
+                    a.download = filename;
                     a.click();
+                    
+                    // Clean up the object URL
+                    window.URL.revokeObjectURL(url);
+                    
                     resultDiv.textContent = "The new file has been downloaded successfully!";
+                    resultDiv.style.color = "green";
                 } else {
                     resultDiv.textContent = "An error occurred while processing the file.";
+                    resultDiv.style.color = "red";
                 }
             } catch (error) {
                 resultDiv.textContent = "Error connecting to the server.";
+                resultDiv.style.color = "red";
+            } finally {
+                // Reset the button state
+                processBtn.disabled = false;
+                processBtn.textContent = "Process PDF";
             }
         }
     </script>
