@@ -2,90 +2,207 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Cut & Stack Rearranger</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PDF Cut & Stack Formatter</title>
     <style>
+        /* CSS Variables for easy color management */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        /* Base Resets & Mobile Smoothing */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Centered Card Layout */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            padding: 30px 20px;
+            max-width: 450px;
+            width: 100%;
             text-align: center;
-            margin: 50px;
         }
-        input[type="file"] {
-            margin-bottom: 20px;
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: var(--text-main);
         }
+
+        p {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        /* Custom Touch-Friendly File Input */
+        .file-upload-wrapper {
+            position: relative;
+            margin-bottom: 25px;
+        }
+
+        /* Hide the ugly default file input */
+        .file-upload-wrapper input[type="file"] {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+        }
+
+        /* Style the label to look like a dropzone/button */
+        .file-upload-label {
+            display: block;
+            padding: 30px 20px;
+            background-color: #f8fafc;
+            border: 2px dashed var(--primary-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        .file-upload-label:hover, .file-upload-label:active {
+            background-color: #eff6ff;
+        }
+
+        .file-name-display {
+            display: block;
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        /* Full-width Mobile Buttons */
+        button {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Status Messages */
         .result {
             margin-top: 20px;
-            font-size: 18px;
-            color: #333;
+            font-size: 0.95rem;
+            font-weight: 500;
+            min-height: 20px;
         }
-        input[type=file]::file-selector-button {
-            margin-right: 20px;
-            border: none;
-            background: #084cdf;
-            padding: 10px 20px;
-            border-radius: 10px;
-            color: #fff;
-            cursor: pointer;
-            transition: background .2s ease-in-out;
-        }
-        input[type=file]::file-selector-button:hover {
-            background: #0d45a5;
-        }
-        button {
-            border: none;
-            background: #0d45a5;
-            padding: 10px 20px;
-            border-radius: 10px;
-            color: #fff;
-            cursor: pointer;
-            transition: background .2s ease-in-out;
-            font-size: 16px;
-        }
-        button:disabled {
-            background: #6c8cbf;
-            cursor: not-allowed;
-        }
+
+        .text-success { color: var(--success); }
+        .text-error { color: var(--error); }
     </style>
 </head>
 <body>
-    <h1>PDF Cut & Stack Rearranger</h1>
-    <p>Upload a PDF to format it for printing "2-Up Double-Sided".<br> Print the result, cut the stack down the middle, and place the right half under the left half.</p>
-    
-    <input type="file" id="pdfFile" accept=".pdf">
-    <button id="processBtn" onclick="uploadFile()">Process PDF</button>
-    <div class="result" id="result"></div>
+
+    <div class="card">
+        <h1>Booklet Formatter</h1>
+        <p>Upload your PDF to prep it for 2-Up Cut & Stack printing.</p>
+
+        <div class="file-upload-wrapper">
+            <input type="file" id="pdfFile" accept=".pdf">
+            <label for="pdfFile" class="file-upload-label">
+                <svg style="width:24px;height:24px;margin-bottom:10px;display:inline-block;" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M13.5,16V19H10.5V16H8L12,12L16,16H13.5M13,9V3.5L18.5,9H13Z" />
+                </svg><br>
+                <span>Tap to choose PDF</span>
+                <span id="fileNameDisplay" class="file-name-display">No file selected</span>
+            </label>
+        </div>
+
+        <button id="processBtn" onclick="uploadFile()">Process & Download</button>
+        <div id="result" class="result"></div>
+    </div>
 
     <script>
+        // Update the UI when a user selects a file
+        document.getElementById('pdfFile').addEventListener('change', function(e) {
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            if (e.target.files.length > 0) {
+                fileNameDisplay.textContent = e.target.files[0].name;
+                fileNameDisplay.style.color = "var(--text-main)";
+            } else {
+                fileNameDisplay.textContent = "No file selected";
+                fileNameDisplay.style.color = "var(--text-muted)";
+            }
+        });
+
         async function uploadFile() {
             const fileInput = document.getElementById('pdfFile');
             const resultDiv = document.getElementById('result');
             const processBtn = document.getElementById('processBtn');
 
+            // Clear previous results
+            resultDiv.className = 'result';
+            resultDiv.textContent = '';
+
             if (!fileInput.files.length) {
                 resultDiv.textContent = "Please select a PDF file first.";
-                resultDiv.style.color = "red";
+                resultDiv.classList.add('text-error');
                 return;
             }
 
-            // Update UI to show processing state
-            resultDiv.textContent = "";
+            // UI Loading State
             processBtn.disabled = true;
-            processBtn.textContent = "Processing...";
+            processBtn.textContent = "Processing... Please wait";
 
             const file = fileInput.files[0];
             const formData = new FormData();
             formData.append('pdf', file);
 
             try {
-                // Pointing to the new Cut and Stack endpoint
                 const response = await fetch('/rearrange-cut-stack', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response.ok) {
-                    // Extract the dynamic filename sent by Flask
-                    let filename = 'rearranged_CutAndStack.pdf'; // Fallback name
+                    let filename = 'rearranged_CutAndStack.pdf';
                     const disposition = response.headers.get('Content-Disposition');
                     if (disposition && disposition.indexOf('filename=') !== -1) {
                         const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
@@ -99,24 +216,26 @@
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = filename;
-                    a.click();
                     
-                    // Clean up the object URL
+                    // Invisible link click for download
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
                     
-                    resultDiv.textContent = "The new file has been downloaded successfully!";
-                    resultDiv.style.color = "green";
+                    resultDiv.textContent = "Success! File downloaded.";
+                    resultDiv.classList.add('text-success');
                 } else {
-                    resultDiv.textContent = "An error occurred while processing the file.";
-                    resultDiv.style.color = "red";
+                    resultDiv.textContent = "An error occurred on the server.";
+                    resultDiv.classList.add('text-error');
                 }
             } catch (error) {
                 resultDiv.textContent = "Error connecting to the server.";
-                resultDiv.style.color = "red";
+                resultDiv.classList.add('text-error');
             } finally {
-                // Reset the button state
+                // Reset Button
                 processBtn.disabled = false;
-                processBtn.textContent = "Process PDF";
+                processBtn.textContent = "Process & Download";
             }
         }
     </script>
